@@ -1,9 +1,19 @@
-
 import React, { useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const defaults = () => ({ seller:"Owen Trading Demo Ltd", customer:"Kampala Builders Ltd", tin:"1000123456", date:today(), item:"50 Bags Tororo Cement", qty:50, price:32000 });
+
+// Fictional demo clients and health states for the accounting-practice view.
+// These indicators are illustrative only; they are not connected to URA or live ERP systems.
+const demoClients = [
+  { id:"client-01", name:"Owen Hardware & Supplies", type:"Hardware retailer", system:"Tally Prime", tin:"1000123456", health:"green", healthLabel:"Up to date", lastSync:"Today, 10:42 AM", pending:0, issue:"No open demo alerts", item:"50 Bags Tororo Cement", qty:50, price:32000, customer:"Kampala Builders Ltd" },
+  { id:"client-02", name:"Lakeview Logistics Ltd", type:"Transport & logistics", system:"QuickBooks", tin:"1000234567", health:"yellow", healthLabel:"Queue waiting", lastSync:"Today, 9:18 AM", pending:4, issue:"4 demo records waiting for connectivity", item:"Transport service", qty:3, price:180000, customer:"Kampala Wholesale Ltd" },
+  { id:"client-03", name:"CityCare Pharmacy", type:"Pharmacy", system:"Odoo", tin:"1000345678", health:"red", healthLabel:"Action needed", lastSync:"Yesterday, 4:06 PM", pending:2, issue:"Sample validation error — review client details", item:"Hand soap", qty:24, price:6500, customer:"City Clinic Demo" },
+  { id:"client-04", name:"Green Basket Foods", type:"Food distributor", system:"Tally Prime", tin:"1000456789", health:"green", healthLabel:"Up to date", lastSync:"Today, 10:12 AM", pending:0, issue:"No open demo alerts", item:"Maize flour", qty:35, price:4200, customer:"Sunrise School Demo" },
+  { id:"client-05", name:"Summit Office Solutions", type:"Office supplies", system:"QuickBooks", tin:"TIN REVIEW", health:"red", healthLabel:"Action needed", lastSync:"Not synced", pending:1, issue:"Sample invalid-TIN warning — accountant review required", item:"Office supplies", qty:12, price:28000, customer:"Northside Services Demo" },
+  { id:"client-06", name:"Pearl Home & Living", type:"Household goods", system:"Odoo", tin:"1000678901", health:"yellow", healthLabel:"Queue waiting", lastSync:"Today, 8:54 AM", pending:1, issue:"1 demo record in the waiting queue", item:"Laundry soap", qty:18, price:4500, customer:"Pearl Guest House Demo" }
+];
 const rules = [
   { terms:["cement","tororo"], code:"30101603", label:"Cement / construction material", confidence:96 },
   { terms:["maize flour","posho","flour"], code:"10059000", label:"Maize / cereal product (demo mapping)", confidence:89 },
@@ -39,6 +49,8 @@ export default function App() {
  const [active,setActive]=useState(-1);
  const [result,setResult]=useState(null);
  const [error,setError]=useState("");
+ const [selectedClientId,setSelectedClientId]=useState(null);
+ const selectedClient=demoClients.find(c=>c.id===selectedClientId) || null;
  const mapping=useMemo(()=>mapItem(form.item),[form.item]);
  const total=(Number(form.qty)||0)*(Number(form.price)||0);
  function update(k,v){setForm(f=>({...f,[k]:v}));setResult(null);if(status!=="processing")setStatus("idle");setError("");}
@@ -53,12 +65,55 @@ export default function App() {
   setResult({fdn,anti,issued:new Date().toLocaleString("en-UG"),qr:`https://example.com/demo-efris-verification?fdn=${encodeURIComponent(fdn)}&status=DEMO`,form:{...form},mapping,total});
   setStatus("complete");setActive(4);
  }
- function reset(){setForm(defaults());setStatus("idle");setActive(-1);setResult(null);setError("");}
+ function openClient(clientId){
+  const client=demoClients.find(c=>c.id===clientId);
+  if(!client)return;
+  setSelectedClientId(client.id);
+  setForm({seller:client.name,customer:client.customer,tin:client.tin,date:today(),item:client.item,qty:client.qty,price:client.price});
+  setStatus("idle");setActive(-1);setResult(null);setError("");
+ }
+ function backToPractice(){setSelectedClientId(null);setStatus("idle");setActive(-1);setResult(null);setError("");}
+ function reset(){setForm(selectedClient?{seller:selectedClient.name,customer:selectedClient.customer,tin:selectedClient.tin,date:today(),item:selectedClient.item,qty:selectedClient.qty,price:selectedClient.price}:defaults());setStatus("idle");setActive(-1);setResult(null);setError("");}
  return <div className="app-shell">
   <div className="demo-banner"><span className="demo-dot"/><b>DEMO MODE</b><span>Local prototype · No live URA connection · All fiscal details are sample data</span></div>
-  <header className="topbar"><div className="brand-lockup"><div className="brand-mark"><Icon name="shield" size={23}/></div><div><div className="brand-name">EFRIS<span>Bridge</span></div><div className="brand-caption">Invoice automation prototype</div></div></div><div className="topbar-right"><span className="connection-pill"><span className="status-dot"/> Local demo environment</span><button className="btn btn-sm btn-outline-light reset-top" onClick={reset}><Icon name="reset" size={14}/> Reset demo</button></div></header>
+  <header className="topbar"><div className="brand-lockup"><div className="brand-mark"><Icon name="shield" size={23}/></div><div><div className="brand-name">EFRIS<span>Bridge</span></div><div className="brand-caption">Accounting practice demo</div></div></div><div className="topbar-right"><span className="connection-pill"><span className="status-dot"/> Demo environment</span>{selectedClient&&<><label className="client-switch-label" htmlFor="client-switcher">Client</label><select id="client-switcher" className="client-switcher" value={selectedClientId} onChange={e=>openClient(e.target.value)} aria-label="Switch client">{demoClients.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select><button className="btn btn-sm btn-outline-light" onClick={backToPractice}>Practice dashboard</button></>}<button className="btn btn-sm btn-outline-light reset-top" onClick={reset}><Icon name="reset" size={14}/> Reset demo</button></div></header>
   <main className="container-fluid main-wrap">
-   <section className="page-intro"><div><div className="eyebrow">INTERACTIVE PRODUCT DEMO</div><h1>From invoice entry to <span>fiscal-ready output.</span></h1><p>Show how a middleware workflow could reduce duplicate entry between an accounting system and EFRIS.</p></div><div className="intro-chip"><Icon name="bolt" size={17}/> Simulated 2-second magic moment</div></section>
+   {!selectedClient&&<section className="practice-dashboard">
+    <div className="practice-hero">
+     <div><div className="eyebrow">ACCOUNTING & TAX PRACTICE</div><h1>One practice. <span>Every client in view.</span></h1><p>Monitor a sample client portfolio, spot items that need attention, and open any client without logging out and back in.</p></div>
+     <div className="practice-hero-stat"><span>DEMO PORTFOLIO</span><strong>{demoClients.length}</strong><small>sample client accounts</small></div>
+    </div>
+    <div className="health-summary">
+     <div className="health-summary-card"><span className="health-dot green-dot"/><div><strong>{demoClients.filter(c=>c.health==="green").length}</strong><span>Up to date</span></div></div>
+     <div className="health-summary-card"><span className="health-dot yellow-dot"/><div><strong>{demoClients.filter(c=>c.health==="yellow").length}</strong><span>Queue waiting</span></div></div>
+     <div className="health-summary-card"><span className="health-dot red-dot"/><div><strong>{demoClients.filter(c=>c.health==="red").length}</strong><span>Action needed</span></div></div>
+     <div className="health-summary-card portfolio-total"><div><strong>{demoClients.reduce((sum,c)=>sum+c.pending,0)}</strong><span>Sample pending records</span></div></div>
+    </div>
+    <section className="portfolio-panel">
+     <div className="portfolio-heading"><div><div className="panel-kicker">PRACTICE OVERVIEW</div><h2>Client portfolio</h2><p>Select a client to inspect invoice entry, commodity mapping and the simulated processing log.</p></div><span className="demo-status-tag">Illustrative data</span></div>
+     <div className="table-responsive">
+      <table className="table portfolio-table align-middle">
+       <thead><tr><th>CLIENT</th><th>ACCOUNTING SYSTEM</th><th>DEMO HEALTH</th><th>LAST ACTIVITY</th><th className="text-center">PENDING</th><th></th></tr></thead>
+       <tbody>{demoClients.map(client=><tr key={client.id}>
+        <td><div className="client-name-cell"><span className="client-avatar">{client.name.split(/\s+/).slice(0,2).map(w=>w[0]).join("")}</span><div><strong>{client.name}</strong><small>{client.type}</small></div></div></td>
+        <td><span className="system-chip">{client.system}</span></td>
+        <td><span className={`health-pill health-${client.health}`}><span className="health-dot"/>{client.healthLabel}</span><small className="health-note">{client.issue}</small></td>
+        <td><span className="last-sync">{client.lastSync}</span></td>
+        <td className="text-center"><span className={`pending-count ${client.pending?"has-pending":""}`}>{client.pending}</span></td>
+        <td className="text-end"><button className="btn btn-sm btn-open-client" onClick={()=>openClient(client.id)}>Open client <span aria-hidden="true">→</span></button></td>
+       </tr>)}</tbody>
+      </table>
+     </div>
+     <div className="portfolio-footnote"><Icon name="info" size={15}/><span>All client names, health states, queue counts and timestamps are fictional demo data. Green/yellow/red indicators are not live URA status checks.</span></div>
+    </section>
+    <div className="practice-lower-grid">
+     <div className="practice-info-card"><div className="heading-icon engine-icon"><Icon name="invoice" size={19}/></div><div><strong>Switch clients instantly</strong><p>Open a client to see its sample invoice, commodity mapping and simulated workflow. Use the client selector to switch accounts.</p></div></div>
+     <div className="practice-info-card"><div className="heading-icon erp-icon"><Icon name="shield" size={19}/></div><div><strong>Surface exceptions early</strong><p>Queue warnings and validation errors are included to demonstrate how an accountant might triage a portfolio.</p></div></div>
+    </div>
+   </section>}
+   {selectedClient&&<>
+   <div className="client-detail-bar"><button className="btn btn-sm btn-outline-secondary" onClick={backToPractice}>← All clients</button><div><span className={`health-pill health-${selectedClient.health}`}><span className="health-dot"/>{selectedClient.healthLabel}</span><span className="client-detail-meta">{selectedClient.system} · Demo client</span></div><div className="client-detail-title"><strong>{selectedClient.name}</strong><small>{selectedClient.type} · TIN: {selectedClient.tin}</small></div></div>
+   <section className="page-intro"><div><div className="eyebrow">INTERACTIVE PRODUCT DEMO</div><h1>From invoice entry to <span>fiscal-ready output.</span></h1><p>Inspect this client’s invoice workflow, commodity mapping and simulated EFRIS response.</p></div><div className="intro-chip"><Icon name="bolt" size={17}/> Simulated 2-second magic moment</div></section>
    <div className="workspace-grid">
     <section className="panel">
      <div className="panel-heading"><div className="heading-icon erp-icon"><Icon name="invoice" size={20}/></div><div className="heading-copy"><div className="panel-kicker">01 / INPUT</div><h2>Accounting invoice</h2><p>Simulated ERP screen</p></div><span className="app-tag">ERP</span></div>
@@ -93,6 +148,7 @@ export default function App() {
      <div className="fiscal-details"><div className="fiscal-code-block"><div className="fiscal-label"><Icon name="shield" size={15}/> DEMO FISCAL DOCUMENT NUMBER</div><strong className="fdn-value">{result.fdn}</strong><div className="fiscal-label mt-3">SAMPLE ANTI-FAKE / VERIFICATION CODE</div><strong className="anti-fake">{result.anti}</strong><p>These identifiers are randomly generated for this local prototype and are not issued by URA.</p></div><div className="qr-block"><div className="qr-frame"><QRCodeSVG value={result.qr} size={116} level="M" includeMargin/></div><strong>Demo QR code</strong><span>Encodes a sample URL only</span><small>Not a live URA verification link</small></div></div>
      <div className="receipt-footer"><span>EFRISBridge interactive prototype</span><span>Printed from local browser demo</span></div>
     </div></section>}
+   </>}
    <footer className="app-footer"><div><span className="footer-mark"><Icon name="shield" size={15}/></span><b>EFRISBridge</b><span>Interactive concept prototype</span></div><p>For product demonstration only. No official URA submission, FDN or tax verification is performed.</p></footer>
   </main>
  </div>;

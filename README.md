@@ -53,3 +53,15 @@ Run `npm run build`. Vite will create a `dist` folder if the project builds succ
 
 ## Suggested client explanation
 “This is an interactive prototype. It demonstrates the proposed workflow, while gateway communication and fiscal identifiers are simulated. A live pilot would require approved URA access, validated commodity codes, security controls, error handling and integration testing.”
+
+
+## Accounting-practice multi-client mode
+
+The prototype now opens on a practice dashboard with six fictional client accounts. It demonstrates:
+- Portfolio-level green / yellow / red client health states.
+- Sample pending-queue counts and last-activity labels.
+- Opening a client to inspect the existing invoice-entry, commodity-mapping and simulated fiscal-output workflow.
+- Switching clients from the client selector without returning to a login screen.
+- Returning to the practice dashboard from a client workspace.
+
+All client records and health states are local illustrative data. No client account, accounting platform, network queue, or URA EFRIS endpoint is connected. The dashboard is a product concept demo, not evidence of a production multi-tenant system.
